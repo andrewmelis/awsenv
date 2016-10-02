@@ -15,65 +15,24 @@ func TestMakeINIFileNoSuchFile(t *testing.T) {
 	}
 }
 
-func makeTestFile(names, values []string) *os.File {
-	if len(names) != len(values) {
-		log.Fatal()
-	}
-
-	var content string
-	for i, _ := range names {
-		if i == 0 {
-			content = fmt.Sprintf("%s=%s\n", names[i], values[i])
-		} else {
-			content = fmt.Sprintf("%s%s=%s\n", content, names[i], values[i])
-		}
-	}
-
-	testFile, err := ioutil.TempFile("", "ini")
-	if err != nil {
-		log.Fatal()
-	}
-	fmt.Printf("content:\n%+v\n", content)
-	testFile.Write([]byte(content))
-	return testFile
-}
-
-func TestMakeINIFileNoSectionSingleKey(t *testing.T) {
-	names := []string{"testName"}
-	values := []string{"testValue"}
-	testFile := makeTestFile(names, values)
-	defer os.Remove(testFile.Name())
-
-	ini, err := MakeINIFile(testFile.Name())
-	if err != nil {
-		t.Fail()
-	}
-
-	if ini.Sections[0].Name != "" {
-		t.Fail()
-	}
-
-	if len(ini.Sections[0].Keys) != len(names) {
-		t.Fail()
-	}
-
-	key := ini.Sections[0].Keys[0]
-	if key.Name != "testName" && key.Value != "testValue" {
+func TestMakeINIFileInvalidContents(t *testing.T) {
+	badTestFile := makeInvalidTestFile()
+	_, err := MakeINIFile(badTestFile.Name())
+	if err == nil {
 		t.Fail()
 	}
 }
 
 func TestMakeINIFileNoSectionMultipleKeys(t *testing.T) {
-	testNames := []string{"testName", "name2"}
-	testValues := []string{"testValue", "value2"}
-	testFile := makeTestFile(testNames, testValues)
+	testNames := []string{"name", "name2", "name3"}
+	testValues := []string{"value", "value2", "value3"}
+	testFile := makeValidTestFile(nil, testNames, testValues)
 	defer os.Remove(testFile.Name())
 
 	ini, err := MakeINIFile(testFile.Name())
 	if err != nil {
 		t.Fail()
 	}
-	fmt.Printf("%+v\n", ini)
 
 	if ini.Sections[0].Name != "" {
 		t.Fail()
@@ -84,9 +43,91 @@ func TestMakeINIFileNoSectionMultipleKeys(t *testing.T) {
 	}
 
 	for i, key := range ini.Sections[0].Keys {
-		fmt.Printf("key: %+v\ntestNames[%d]: %s, testValues[%d]: %s\n", key, i, testNames[i], i, testValues[i])
 		if key.Name != testNames[i] && key.Value != testValues[i] {
 			t.Fail()
 		}
 	}
+}
+
+func TestMakeINIFileSectionsMultipleKeys(t *testing.T) {
+	// testSections := []string{"section1"}
+	testSections := []string{"section1", "section2"}
+	testNames := []string{"name", "name2", "name3"}
+	testValues := []string{"value", "value2", "value3"}
+	testFile := makeValidTestFile(testSections, testNames, testValues)
+	defer os.Remove(testFile.Name())
+
+	ini, err := MakeINIFile(testFile.Name())
+	if err != nil {
+		t.Errorf("error: %s", err)
+	}
+
+	for i, section := range ini.Sections {
+		if section.Name != testSections[i] {
+			t.Errorf("actual section name %s does not match expected %s", section.Name, testSections[i])
+		}
+
+		for j, key := range section.Keys {
+			if key.Name != testNames[j] {
+				t.Errorf("actual key name %s does not match expected %s", key.Name, testNames[j])
+			}
+
+			if key.Value != testValues[j] {
+				t.Errorf("actual key value %s does not match expected %s", key.Value, testValues[j])
+			}
+		}
+	}
+}
+
+// makeTestFile writes all input name/value pairs to each section in ini format
+func makeValidTestFile(sections, names, values []string) *os.File {
+	if len(names) != len(values) {
+		log.Fatal()
+	}
+
+	if sections == nil {
+		sections = []string{}
+	}
+
+	var content string
+
+	if len(sections) < 1 {
+		for i := range names {
+			if i == 0 {
+				content = fmt.Sprintf("%s=%s\n", names[i], values[i])
+			} else {
+				content = fmt.Sprintf("%s%s=%s\n", content, names[i], values[i])
+			}
+		}
+	} else {
+		for i, section := range sections {
+			if i == 0 {
+				content = fmt.Sprintf("[%s]\n", section)
+			} else {
+				content = fmt.Sprintf("%s[%s]\n", content, section)
+			}
+
+			for j := range names {
+				content = fmt.Sprintf("%s%s=%s\n", content, names[j], values[j])
+			}
+			content = fmt.Sprintf("%s\n", content) // test without newline between sections?
+			// content = fmt.Sprintf("%s", content) // test without newline between sections?
+		}
+	}
+	return makeTestFile(content)
+}
+
+func makeInvalidTestFile() *os.File {
+	return makeTestFile("badstuff")
+}
+
+func makeTestFile(content string) *os.File {
+	fmt.Printf("DEBUG CONTENT\n========\n%s===========\n", content)
+
+	testFile, err := ioutil.TempFile("", "ini")
+	if err != nil {
+		log.Fatal()
+	}
+	testFile.Write([]byte(content))
+	return testFile
 }

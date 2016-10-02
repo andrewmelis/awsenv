@@ -2,7 +2,9 @@ package ini
 
 import (
 	"bufio"
+	"fmt"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -20,6 +22,11 @@ type INIKey struct {
 	Value string // interface{}?
 }
 
+var (
+	matchINISection  = regexp.MustCompile(`^\[\w+\]$`)
+	matchINIProperty = regexp.MustCompile(`^[0-9A-Za-z]+=[0-9A-Za-z]+$`)
+)
+
 func MakeINIFile(path string) (INIFile, error) {
 	iniFile := INIFile{}
 
@@ -32,18 +39,41 @@ func MakeINIFile(path string) (INIFile, error) {
 	section := INISection{}
 	key := INIKey{}
 
+	var pendingSection, pendingKey bool
+
 	scan := bufio.NewScanner(f)
 	for scan.Scan() {
 		l := scan.Text()
 
-		keySegments := strings.Split(l, "=")
-		key.Name = keySegments[0]
-		key.Value = keySegments[1]
+		switch {
+		case l == "": // use matchstring?
+			if pendingSection || pendingKey {
+				iniFile.Sections = append(iniFile.Sections, section) // final section append?
+				// reset
+				pendingSection, pendingKey = false, false
+				section = INISection{}
+				key = INIKey{}
+			}
+		case matchINISection.MatchString(l):
+			section.Name = strings.Trim(l, "[]")
+			pendingSection = true
+		case matchINIProperty.MatchString(l):
+			keySegments := strings.Split(l, "=")
+			key.Name = keySegments[0]
+			key.Value = keySegments[1]
 
-		section.Keys = append(section.Keys, key)
+			pendingKey = true
+			section.Keys = append(section.Keys, key)
+		default:
+			err = fmt.Errorf("invalid INI file syntax for %s\n", l)
+		}
 	}
 
-	iniFile.Sections = append(iniFile.Sections, section)
+	// final section append
+	if pendingSection || pendingKey {
+		iniFile.Sections = append(iniFile.Sections, section) // final section append?
+		pendingSection, pendingKey = false, false
+	}
 
 	return iniFile, err
 }
