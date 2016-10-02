@@ -24,7 +24,7 @@ type INIKey struct {
 
 var (
 	matchINISection  = regexp.MustCompile(`^\[\w+\]$`)
-	matchINIProperty = regexp.MustCompile(`^[0-9A-Za-z]+=[0-9A-Za-z]+$`)
+	matchINIProperty = regexp.MustCompile(`^\w+=\w+$`)
 )
 
 func MakeINIFile(path string) (INIFile, error) {

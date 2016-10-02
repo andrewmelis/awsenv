@@ -24,8 +24,8 @@ func TestMakeINIFileInvalidContents(t *testing.T) {
 }
 
 func TestMakeINIFileNoSectionMultipleKeys(t *testing.T) {
-	testNames := []string{"name", "name2", "name3"}
-	testValues := []string{"value", "value2", "value3"}
+	testNames := []string{"name", "name_2", "name3"}
+	testValues := []string{"value", "value2", "value_3"}
 	testFile := makeValidTestFile(nil, testNames, testValues)
 	defer os.Remove(testFile.Name())
 
@@ -50,10 +50,9 @@ func TestMakeINIFileNoSectionMultipleKeys(t *testing.T) {
 }
 
 func TestMakeINIFileSectionsMultipleKeysLineBreaks(t *testing.T) {
-	// testSections := []string{"section1"}
-	testSections := []string{"section1", "section2", "section3"}
-	testNames := []string{"name", "name2", "name3"}
-	testValues := []string{"value", "value2", "value3"}
+	testSections := []string{"section1", "section_2", "section3"}
+	testNames := []string{"name", "name2", "name_3"}
+	testValues := []string{"value_", "value2", "value3"}
 	testFile := makeValidTestFile(testSections, testNames, testValues)
 	defer os.Remove(testFile.Name())
 
