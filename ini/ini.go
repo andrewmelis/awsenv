@@ -39,7 +39,7 @@ func MakeINIFile(path string) (INIFile, error) {
 	section := INISection{}
 	key := INIKey{}
 
-	var pendingSection, pendingKey bool
+	var foundSection, foundKey bool
 
 	scan := bufio.NewScanner(f)
 	for scan.Scan() {
@@ -47,22 +47,20 @@ func MakeINIFile(path string) (INIFile, error) {
 
 		switch {
 		case l == "": // use matchstring?
-			if pendingSection || pendingKey {
-				iniFile.Sections = append(iniFile.Sections, section) // final section append?
-				// reset
-				pendingSection, pendingKey = false, false
-				section = INISection{}
-				key = INIKey{}
-			}
+			appendAndReset(&foundSection, &foundKey, &iniFile.Sections, &section, &key)
 		case matchINISection.MatchString(l):
+			if foundSection { // new section; no intervening newline
+				appendAndReset(&foundSection, &foundKey, &iniFile.Sections, &section, &key)
+			}
+
 			section.Name = strings.Trim(l, "[]")
-			pendingSection = true
+			foundSection = true
 		case matchINIProperty.MatchString(l):
 			keySegments := strings.Split(l, "=")
 			key.Name = keySegments[0]
 			key.Value = keySegments[1]
 
-			pendingKey = true
+			foundKey = true
 			section.Keys = append(section.Keys, key)
 		default:
 			err = fmt.Errorf("invalid INI file syntax for %s\n", l)
@@ -70,10 +68,17 @@ func MakeINIFile(path string) (INIFile, error) {
 	}
 
 	// final section append
-	if pendingSection || pendingKey {
-		iniFile.Sections = append(iniFile.Sections, section) // final section append?
-		pendingSection, pendingKey = false, false
-	}
+	appendAndReset(&foundSection, &foundKey, &iniFile.Sections, &section, &key)
 
 	return iniFile, err
+}
+
+func appendAndReset(foundSection, foundKey *bool, sections *[]INISection, newSection *INISection, key *INIKey) {
+	if *foundSection || *foundKey {
+		*sections = append(*sections, *newSection) // final section append?
+		// reset
+		*foundSection, *foundKey = false, false
+		*newSection = INISection{}
+		*key = INIKey{}
+	}
 }

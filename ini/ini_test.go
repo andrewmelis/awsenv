@@ -49,9 +49,9 @@ func TestMakeINIFileNoSectionMultipleKeys(t *testing.T) {
 	}
 }
 
-func TestMakeINIFileSectionsMultipleKeys(t *testing.T) {
+func TestMakeINIFileSectionsMultipleKeysLineBreaks(t *testing.T) {
 	// testSections := []string{"section1"}
-	testSections := []string{"section1", "section2"}
+	testSections := []string{"section1", "section2", "section3"}
 	testNames := []string{"name", "name2", "name3"}
 	testValues := []string{"value", "value2", "value3"}
 	testFile := makeValidTestFile(testSections, testNames, testValues)
@@ -79,7 +79,22 @@ func TestMakeINIFileSectionsMultipleKeys(t *testing.T) {
 	}
 }
 
-// makeTestFile writes all input name/value pairs to each section in ini format
+/*
+example output:
+[section1]
+name=value
+name2=value2
+name3=value3
+
+[section2]
+name=value
+name2=value2
+name3=value3 <-- intentionally lacking newline
+[section3]
+name=value
+name2=value2
+name3=value3
+*/
 func makeValidTestFile(sections, names, values []string) *os.File {
 	if len(names) != len(values) {
 		log.Fatal()
@@ -110,20 +125,23 @@ func makeValidTestFile(sections, names, values []string) *os.File {
 			for j := range names {
 				content = fmt.Sprintf("%s%s=%s\n", content, names[j], values[j])
 			}
-			content = fmt.Sprintf("%s\n", content) // test without newline between sections?
-			// content = fmt.Sprintf("%s", content) // test without newline between sections?
+
+			// no linebreak after second section for arbitrary formatting test
+			if i == 1 {
+				content = fmt.Sprintf("%s", content)
+			} else {
+				content = fmt.Sprintf("%s\n", content)
+			}
 		}
 	}
 	return makeTestFile(content)
 }
 
 func makeInvalidTestFile() *os.File {
-	return makeTestFile("badstuff")
+	return makeTestFile("badstuff]")
 }
 
 func makeTestFile(content string) *os.File {
-	fmt.Printf("DEBUG CONTENT\n========\n%s===========\n", content)
-
 	testFile, err := ioutil.TempFile("", "ini")
 	if err != nil {
 		log.Fatal()
