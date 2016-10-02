@@ -82,3 +82,12 @@ func appendAndReset(foundSection, foundKey *bool, sections *[]INISection, newSec
 		*key = INIKey{}
 	}
 }
+
+func (f INIFile) Section(name string) (INISection, error) {
+	for _, section := range f.Sections {
+		if section.Name == name {
+			return section, nil
+		}
+	}
+	return INISection{}, fmt.Errorf("Section %s not found!\n", name)
+}

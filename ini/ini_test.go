@@ -78,6 +78,46 @@ func TestMakeINIFileSectionsMultipleKeysLineBreaks(t *testing.T) {
 	}
 }
 
+func TestGetSectionValidName(t *testing.T) {
+	testSections := []string{"section1", "section_2", "section3"}
+	testNames := []string{"name", "name2", "name_3"}
+	testValues := []string{"value_", "value2", "value3"}
+	testFile := makeValidTestFile(testSections, testNames, testValues)
+	defer os.Remove(testFile.Name())
+
+	ini, err := MakeINIFile(testFile.Name())
+
+	section, err := ini.Section("section_2")
+	if err != nil {
+		t.Errorf("Error retrieving section: %s\n", err)
+	}
+
+	for i, key := range section.Keys {
+		if key.Name != testNames[i] {
+			t.Errorf("actual key name %s does not match expected %s", key.Name, testNames[i])
+		}
+
+		if key.Value != testValues[i] {
+			t.Errorf("actual key value %s does not match expected %s", key.Value, testValues[i])
+		}
+	}
+}
+
+func TestGetSectionInvalidName(t *testing.T) {
+	testSections := []string{"section1", "section_2", "section3"}
+	testNames := []string{"name", "name2", "name_3"}
+	testValues := []string{"value_", "value2", "value3"}
+	testFile := makeValidTestFile(testSections, testNames, testValues)
+	defer os.Remove(testFile.Name())
+
+	ini, err := MakeINIFile(testFile.Name())
+
+	section, err := ini.Section("fake_section2")
+	if err == nil {
+		t.Errorf("returned incorrect section: %s\n", section)
+	}
+}
+
 /*
 example output:
 [section1]
