@@ -3,6 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"os"
+	"strings"
+
+	"github.com/andrewmelis/awsenv/ini"
 )
 
 func main() {
@@ -10,8 +15,34 @@ func main() {
 	credsLocation := flag.String("location", "~/.aws/credentials", "location of aws credentials file")
 	flag.Parse()
 
-	// awsCredentials := MakeINIFile(*credsLocation)
+	credentialsFile, err := ini.MakeINIFile(*credsLocation)
+	if err != nil {
+		log.Fatal("error retrieving credentials: %s\n", err)
+	}
 
-	// fmt.Printf("opts: %s profile at %s\n%#v\n", *profile, *credsLocation, awsCredentials)
-	fmt.Printf("opts: %s profile at %s\n", *profile, *credsLocation)
+	targetProfile, err := credentialsFile.Section(*profile)
+	if err != nil {
+		log.Fatal("error retrieving credentials: %s\n", err)
+	}
+
+	exportCredentials(AwsProfile(targetProfile))
+	// fmt.Printf("opts: %s profile at %s\n%+v\n", *profile, *credsLocation, credentialsFile)
+}
+
+type AwsProfile ini.INISection
+
+type ShellConfig struct {
+	Credentials map[string]string
+}
+
+func generateExportCredentials(profile AwsProfile) map[string]string {
+	cfg := make(map[string]string)
+
+	fmt.Printf("profile: %+v\n", profile)
+
+	for _, key := range profile.Keys {
+		upperName := strings.ToUpper(key.Name)
+		cfg[upperName] = key.Value
+	}
+	return cfg
 }
