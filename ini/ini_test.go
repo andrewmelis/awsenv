@@ -23,6 +23,15 @@ func TestMakeINIFileInvalidContents(t *testing.T) {
 	}
 }
 
+// FIXME
+// func TestMakeINIFileEmpty(t *testing.T) {
+// 	emptyTestFile := makeEmptyTestFile()
+// 	_, err := MakeINIFile(emptyTestFile.Name())
+// 	if err == nil {
+// 		t.Errorf("empty file should return error!\n")
+// 	}
+// }
+
 func TestMakeINIFileNoSectionMultipleKeys(t *testing.T) {
 	testNames := []string{"name", "name_2", "name3"}
 	testValues := []string{"value", "value2", "value_3"}
@@ -177,7 +186,11 @@ func makeValidTestFile(sections, names, values []string) *os.File {
 }
 
 func makeInvalidTestFile() *os.File {
-	return makeTestFile("badstuff]")
+	return makeTestFile("\nbadstuff]kjaldsf]\n")
+}
+
+func makeEmptyTestFile() *os.File {
+	return makeTestFile("")
 }
 
 func makeTestFile(content string) *os.File {

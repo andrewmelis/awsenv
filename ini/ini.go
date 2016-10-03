@@ -14,7 +14,7 @@ type INIFile struct {
 
 type INISection struct {
 	Name string
-	Keys []INIKey
+	Keys []INIKey // should be map instead? -- but ordered...
 }
 
 type INIKey struct {
